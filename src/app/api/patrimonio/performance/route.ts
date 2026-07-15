@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -146,7 +147,7 @@ export async function GET(req: NextRequest) {
     const [y, m] = key.split("-").map(Number);
     for (const t of allTx) {
       if (t.date.getFullYear() === y && t.date.getMonth() + 1 === m) {
-        const amt = parseFloat(String(t.amount));
+        const amt = toNumber(t.amount);
         cumulative += t.type === "INCOME" ? amt : -amt;
       }
     }

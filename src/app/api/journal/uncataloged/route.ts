@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -6,9 +7,9 @@ import { InvestmentEntry, Asset } from "@/generated/prisma/client";
 function serializeInvestmentEntry(e: InvestmentEntry & { asset: Asset }) {
   return {
     ...e,
-    quantity:  parseFloat(String(e.quantity)),
-    price:     parseFloat(String(e.price)),
-    amount:    parseFloat(String(e.amount)),
+    quantity:  toNumber(e.quantity),
+    price:     toNumber(e.price),
+    amount:    toNumber(e.amount),
     date:      e.date instanceof Date      ? e.date.toISOString()      : e.date,
     createdAt: e.createdAt instanceof Date ? e.createdAt.toISOString() : e.createdAt,
   };

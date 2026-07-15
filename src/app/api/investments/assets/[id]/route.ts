@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -40,8 +41,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   return NextResponse.json({
     ...updated,
-    currentPrice: updated.currentPrice ? parseFloat(String(updated.currentPrice)) : null,
-    rate: updated.rate ? parseFloat(String(updated.rate)) : null,
+    currentPrice: updated.currentPrice ? toNumber(updated.currentPrice) : null,
+    rate: updated.rate ? toNumber(updated.rate) : null,
   });
 }
 

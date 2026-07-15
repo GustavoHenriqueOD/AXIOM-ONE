@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -84,9 +85,9 @@ export async function GET() {
     let totalDividends = 0;
 
     for (const e of asset.entries) {
-      const qty = parseFloat(String(e.quantity));
-      const price = parseFloat(String(e.price));
-      const amount = parseFloat(String(e.amount));
+      const qty = toNumber(e.quantity);
+      const price = toNumber(e.price);
+      const amount = toNumber(e.amount);
 
       if (e.type === "PURCHASE") {
         totalCost += qty * price;
@@ -124,7 +125,7 @@ export async function GET() {
       dailyChangePct = liveQuote.dailyChangePct ?? 0;
       dailyChangeAmount = liveQuote.dailyChange ? totalQty * liveQuote.dailyChange : 0;
     } else {
-      currentPrice = asset.currentPrice ? parseFloat(String(asset.currentPrice)) : avgCost;
+      currentPrice = asset.currentPrice ? toNumber(asset.currentPrice) : avgCost;
       priceSource = "manual";
     }
 
@@ -134,7 +135,7 @@ export async function GET() {
     const pnlPct = totalInvested > 0 ? (pnl / totalInvested) * 100 : 0;
 
     const assetIndexer = asset.indexer ?? null;
-    const assetRate = asset.rate ? parseFloat(String(asset.rate)) : null;
+    const assetRate = asset.rate ? toNumber(asset.rate) : null;
     const monthlyYield = FIXED_INCOME_TYPES.has(asset.type)
       ? calcMonthlyYield(currentValue, assetIndexer, assetRate, selicAnual)
       : null;

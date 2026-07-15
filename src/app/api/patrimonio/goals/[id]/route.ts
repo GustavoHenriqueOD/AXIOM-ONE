@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -19,9 +20,9 @@ function serialize(goal: {
   return {
     id: goal.id,
     name: goal.name,
-    targetAmount: parseFloat(String(goal.targetAmount)),
-    savedAmount: parseFloat(String(goal.savedAmount)),
-    contributionAmount: parseFloat(String(goal.contributionAmount)),
+    targetAmount: toNumber(goal.targetAmount),
+    savedAmount: toNumber(goal.savedAmount),
+    contributionAmount: toNumber(goal.contributionAmount),
     contributionFrequency: goal.contributionFrequency as "DAILY" | "WEEKLY" | "MONTHLY",
     bank: goal.bank,
     notes: goal.notes,

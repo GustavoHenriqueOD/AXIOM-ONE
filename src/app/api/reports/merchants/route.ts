@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { cleanDescription } from "@/lib/import/cleanDescription";
-
-function toNumber(val: unknown): number {
-  return parseFloat(String(val));
-}
+import { toNumber } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   const session = await auth();

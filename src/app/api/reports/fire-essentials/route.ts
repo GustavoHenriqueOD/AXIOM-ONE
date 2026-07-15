@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -49,7 +50,7 @@ export async function GET() {
 
   const sumByCategory = new Map<string, number>();
   for (const row of txRows) {
-    sumByCategory.set(row.categoryId, parseFloat(String(row._sum.amount ?? 0)));
+    sumByCategory.set(row.categoryId, toNumber(row._sum.amount ?? 0));
   }
 
   // 5. Build essential categories list

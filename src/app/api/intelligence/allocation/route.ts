@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -51,11 +52,11 @@ export async function GET() {
 
   const monthlyIncome = txs
     .filter((t) => t.type === "INCOME")
-    .reduce((acc, t) => acc + parseFloat(String(t.amount)), 0);
+    .reduce((acc, t) => acc + toNumber(t.amount), 0);
 
   const monthlyExpenses = txs
     .filter((t) => t.type === "EXPENSE")
-    .reduce((acc, t) => acc + parseFloat(String(t.amount)), 0);
+    .reduce((acc, t) => acc + toNumber(t.amount), 0);
 
   const availableMonthly = Math.max(0, monthlyIncome - monthlyExpenses);
 
@@ -72,7 +73,7 @@ export async function GET() {
   const typeAmounts: Record<string, number> = {};
   for (const entry of purchaseEntries) {
     const type = entry.asset.type;
-    typeAmounts[type] = (typeAmounts[type] ?? 0) + parseFloat(String(entry.amount));
+    typeAmounts[type] = (typeAmounts[type] ?? 0) + toNumber(entry.amount);
   }
 
   const totalAmount = Object.values(typeAmounts).reduce((a, b) => a + b, 0);

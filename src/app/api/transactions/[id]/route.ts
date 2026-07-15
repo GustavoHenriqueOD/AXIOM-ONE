@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -50,7 +51,7 @@ export async function PATCH(
 
   const serialized = {
     ...updated,
-    amount: parseFloat(String(updated.amount)),
+    amount: toNumber(updated.amount),
     date: updated.date.toISOString(),
   };
 

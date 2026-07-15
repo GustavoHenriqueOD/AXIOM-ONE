@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -41,8 +42,8 @@ async function generateTransactionNotifications(
       }),
     ]);
 
-    const totalExpense = parseFloat(String(monthlyExpense._sum.amount ?? 0));
-    const totalIncome = parseFloat(String(monthlyIncome._sum.amount ?? 0));
+    const totalExpense = toNumber(monthlyExpense._sum.amount ?? 0);
+    const totalIncome = toNumber(monthlyIncome._sum.amount ?? 0);
 
     // Alert when expenses exceed 80% of income (and income > 0)
     if (totalIncome > 0 && totalExpense >= totalIncome * 0.8) {
@@ -81,7 +82,7 @@ export async function GET() {
 
   const serialized = transactions.map((tx) => ({
     ...tx,
-    amount: parseFloat(String(tx.amount)),
+    amount: toNumber(tx.amount),
     date: tx.date.toISOString(),
   }));
 
@@ -144,7 +145,7 @@ export async function POST(req: NextRequest) {
 
   const serialized = {
     ...transaction,
-    amount: parseFloat(String(transaction.amount)),
+    amount: toNumber(transaction.amount),
     date: transaction.date.toISOString(),
   };
 

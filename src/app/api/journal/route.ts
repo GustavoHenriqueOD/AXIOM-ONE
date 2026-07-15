@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -12,7 +13,7 @@ function serializeEntry(entry: JournalEntryWithInvestment) {
   return {
     ...entry,
     sustainableSurplusAtTime: entry.sustainableSurplusAtTime
-      ? parseFloat(String(entry.sustainableSurplusAtTime))
+      ? toNumber(entry.sustainableSurplusAtTime)
       : null,
     date:      entry.date instanceof Date      ? entry.date.toISOString()      : entry.date,
     createdAt: entry.createdAt instanceof Date ? entry.createdAt.toISOString() : entry.createdAt,
@@ -20,9 +21,9 @@ function serializeEntry(entry: JournalEntryWithInvestment) {
     investmentEntry: entry.investmentEntry
       ? {
           ...entry.investmentEntry,
-          quantity:  parseFloat(String(entry.investmentEntry.quantity)),
-          price:     parseFloat(String(entry.investmentEntry.price)),
-          amount:    parseFloat(String(entry.investmentEntry.amount)),
+          quantity:  toNumber(entry.investmentEntry.quantity),
+          price:     toNumber(entry.investmentEntry.price),
+          amount:    toNumber(entry.investmentEntry.amount),
           date:      entry.investmentEntry.date instanceof Date ? entry.investmentEntry.date.toISOString() : entry.investmentEntry.date,
           createdAt: entry.investmentEntry.createdAt instanceof Date ? entry.investmentEntry.createdAt.toISOString() : entry.investmentEntry.createdAt,
           asset: entry.investmentEntry.asset,

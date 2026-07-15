@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -56,8 +57,8 @@ export async function PATCH(
     },
   });
 
-  const baseValue = parseFloat(String(updated.value));
-  const rate = updated.appreciationRate != null ? parseFloat(String(updated.appreciationRate)) : null;
+  const baseValue = toNumber(updated.value);
+  const rate = updated.appreciationRate != null ? toNumber(updated.appreciationRate) : null;
   const start = updated.appreciationStart ?? updated.createdAt;
   const frequency = (updated.rateFrequency as "MONTHLY" | "ANNUAL") ?? "ANNUAL";
 

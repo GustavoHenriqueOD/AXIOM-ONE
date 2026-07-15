@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -22,9 +23,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Tipo inválido" }, { status: 400 });
   }
 
-  const newQty = quantity !== undefined ? Number(quantity) : parseFloat(String(entry.quantity));
+  const newQty = quantity !== undefined ? Number(quantity) : toNumber(entry.quantity);
   const newType = type ?? entry.type;
-  const newPrice = newType === "SPLIT" ? 0 : (price !== undefined ? Number(price) : parseFloat(String(entry.price)));
+  const newPrice = newType === "SPLIT" ? 0 : (price !== undefined ? Number(price) : toNumber(entry.price));
   const newAmount = newQty * newPrice;
 
   const updated = await prisma.investmentEntry.update({
@@ -42,9 +43,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   return NextResponse.json({
     ...updated,
-    quantity: parseFloat(String(updated.quantity)),
-    price: parseFloat(String(updated.price)),
-    amount: parseFloat(String(updated.amount)),
+    quantity: toNumber(updated.quantity),
+    price: toNumber(updated.price),
+    amount: toNumber(updated.amount),
     date: updated.date.toISOString(),
     createdAt: updated.createdAt.toISOString(),
   });

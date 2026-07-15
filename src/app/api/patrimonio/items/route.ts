@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -24,8 +25,8 @@ function serialize(item: {
   notes: string | null;
   createdAt: Date;
 }): WealthItemSerialized {
-  const baseValue = parseFloat(String(item.value));
-  const rate = item.appreciationRate != null ? parseFloat(String(item.appreciationRate)) : null;
+  const baseValue = toNumber(item.value);
+  const rate = item.appreciationRate != null ? toNumber(item.appreciationRate) : null;
   const start = item.appreciationStart ?? item.createdAt;
   const frequency = (item.rateFrequency as "MONTHLY" | "ANNUAL") ?? "ANNUAL";
   const currentValue = calcCurrentValue(baseValue, rate, frequency, start);

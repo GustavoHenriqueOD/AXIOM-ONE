@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -11,7 +12,7 @@ export async function GET() {
     select: { patrimonyGoal: true },
   });
 
-  const goal = user?.patrimonyGoal ? parseFloat(String(user.patrimonyGoal)) : null;
+  const goal = user?.patrimonyGoal ? toNumber(user.patrimonyGoal) : null;
   return NextResponse.json({ goal });
 }
 

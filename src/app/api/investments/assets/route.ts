@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -16,8 +17,8 @@ export async function GET() {
 
   const serialized = assets.map((a) => ({
     ...a,
-    currentPrice: a.currentPrice ? parseFloat(String(a.currentPrice)) : null,
-    rate: a.rate ? parseFloat(String(a.rate)) : null,
+    currentPrice: a.currentPrice ? toNumber(a.currentPrice) : null,
+    rate: a.rate ? toNumber(a.rate) : null,
   }));
 
   return NextResponse.json(serialized);
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     ...asset,
-    currentPrice: asset.currentPrice ? parseFloat(String(asset.currentPrice)) : null,
-    rate: asset.rate ? parseFloat(String(asset.rate)) : null,
+    currentPrice: asset.currentPrice ? toNumber(asset.currentPrice) : null,
+    rate: asset.rate ? toNumber(asset.rate) : null,
   });
 }

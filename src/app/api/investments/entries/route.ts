@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -21,9 +22,9 @@ function serializeEntry(entry: {
 }) {
   return {
     ...entry,
-    quantity: parseFloat(String(entry.quantity)),
-    price: parseFloat(String(entry.price)),
-    amount: parseFloat(String(entry.amount)),
+    quantity: toNumber(entry.quantity),
+    price: toNumber(entry.price),
+    amount: toNumber(entry.amount),
     date: entry.date instanceof Date ? entry.date.toISOString() : entry.date,
     createdAt: entry.createdAt instanceof Date ? entry.createdAt.toISOString() : entry.createdAt,
   };
@@ -117,8 +118,8 @@ export async function POST(req: NextRequest) {
     });
     let currentQty = 0;
     for (const e of existingEntries) {
-      if (e.type === "PURCHASE") currentQty += parseFloat(String(e.quantity));
-      else if (e.type === "SALE") currentQty -= parseFloat(String(e.quantity));
+      if (e.type === "PURCHASE") currentQty += toNumber(e.quantity);
+      else if (e.type === "SALE") currentQty -= toNumber(e.quantity);
     }
     if (qty > currentQty) {
       return NextResponse.json(

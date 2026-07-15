@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -42,8 +43,8 @@ export async function GET() {
     let totalQty = 0;
     let totalCost = 0;
     for (const e of asset.entries) {
-      const qty = parseFloat(String(e.quantity));
-      const price = parseFloat(String(e.price));
+      const qty = toNumber(e.quantity);
+      const price = toNumber(e.price);
       if (e.type === "PURCHASE") {
         totalCost += qty * price;
         totalQty += qty;
@@ -67,7 +68,7 @@ export async function GET() {
     let div12m = 0;
 
     for (const e of dividendEntries) {
-      const amount = parseFloat(String(e.amount));
+      const amount = toNumber(e.amount);
       const entryDate = new Date(e.date);
       assetTotalDivs += amount;
 
@@ -107,7 +108,7 @@ export async function GET() {
         const sum12m = cashDivs
           .filter((d) => new Date(d.paymentDate) >= cutoff12m)
           .reduce((s, d) => s + d.rate, 0);
-        const currentPrice = asset.currentPrice ? parseFloat(String(asset.currentPrice)) : 0;
+        const currentPrice = asset.currentPrice ? toNumber(asset.currentPrice) : 0;
         dy = currentPrice > 0 ? (sum12m / currentPrice) * 100 : null;
       }
     }

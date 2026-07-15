@@ -1,3 +1,4 @@
+import { toNumber } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -23,19 +24,19 @@ export async function GET() {
   });
 
   return NextResponse.json({
-    monthlyExpense: user?.fireMonthlyExpense ? parseFloat(String(user.fireMonthlyExpense)) : null,
-    swr: user?.fireSWR ? parseFloat(String(user.fireSWR)) : null,
+    monthlyExpense: user?.fireMonthlyExpense ? toNumber(user.fireMonthlyExpense) : null,
+    swr: user?.fireSWR ? toNumber(user.fireSWR) : null,
     targetMonthlyIncome: user?.fireTargetMonthlyIncome
-      ? parseFloat(String(user.fireTargetMonthlyIncome))
+      ? toNumber(user.fireTargetMonthlyIncome)
       : null,
     retirementYears: user?.fireRetirementYears ?? null,
     targetMonthlyContrib: user?.fireTargetMonthlyContrib
-      ? parseFloat(String(user.fireTargetMonthlyContrib))
+      ? toNumber(user.fireTargetMonthlyContrib)
       : null,
     targetInvestedAmount: user?.fireTargetInvestedAmount
-      ? parseFloat(String(user.fireTargetInvestedAmount))
+      ? toNumber(user.fireTargetInvestedAmount)
       : null,
-    fiNumberManual: user?.fireNumberManual ? parseFloat(String(user.fireNumberManual)) : null,
+    fiNumberManual: user?.fireNumberManual ? toNumber(user.fireNumberManual) : null,
   } satisfies FireSettingsResponse);
 }
 
