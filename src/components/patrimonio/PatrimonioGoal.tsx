@@ -29,7 +29,7 @@ export function PatrimonioGoal({
     if (isNaN(parsed) || parsed <= 0) return;
     setSaving(true);
     try {
-      await fetch("/api/patrimonio/goal", {
+      await fetch("/api/patrimonio/target", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ goal: parsed }),
@@ -45,7 +45,7 @@ export function PatrimonioGoal({
   async function handleRemove() {
     setSaving(true);
     try {
-      await fetch("/api/patrimonio/goal", {
+      await fetch("/api/patrimonio/target", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ goal: null }),
