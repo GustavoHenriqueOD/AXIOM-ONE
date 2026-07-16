@@ -64,7 +64,7 @@ export function Topbar({ userName, userEmail, userImage }: TopbarProps) {
 
   async function handleThemeToggle() {
     const next = isDark ? "light" : "dark";
-    await fetch("/api/settings/theme", {
+    await fetch("/api/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ theme: next }),

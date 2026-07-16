@@ -34,7 +34,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
     setSavingProfile(true);
     setProfileMsg(null);
     try {
-      const res = await fetch("/api/settings/profile", {
+      const res = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email }),

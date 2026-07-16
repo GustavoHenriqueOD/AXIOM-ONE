@@ -115,7 +115,7 @@ export function SettingsPage({
     e.preventDefault();
     setSavingProfile(true);
     try {
-      const res = await fetch("/api/settings/profile", {
+      const res = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email }),
@@ -167,7 +167,7 @@ export function SettingsPage({
     setIsDark(checked);
     const theme = checked ? "dark" : "light";
     try {
-      await fetch("/api/settings/theme", {
+      await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ theme }),
@@ -189,7 +189,7 @@ export function SettingsPage({
     if (!newLocale) return;
     setLocale(newLocale);
     try {
-      await fetch("/api/settings/locale", {
+      await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ locale: newLocale }),
@@ -202,7 +202,7 @@ export function SettingsPage({
 
   async function handleNotifChange(field: keyof NotifPrefs, value: boolean) {
     try {
-      await fetch("/api/settings/notifications", {
+      await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [field]: value }),
