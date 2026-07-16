@@ -1,58 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Loader2, X } from "lucide-react";
-import type { AssetType, EntryType } from "@/generated/prisma/client";
+import { AssetSelector } from "./AssetSelector";
+import type { AssetRaw, AssetMode, NewAssetConfig } from "./AssetSelector";
+import type { EntryType } from "@/generated/prisma/client";
 
 const ENTRY_TYPES: EntryType[] = ["PURCHASE", "SALE", "DIVIDEND", "SPLIT"];
-
-// Renda fixa primeiro — mais comum para novos usuários
-const ASSET_TYPES_GROUPED: AssetType[] = [
-  "CDB", "RDB", "LCI", "LCA", "TESOURO", "POUPANCA", "FIXED_INCOME",
-  "STOCK", "FII", "ETF", "BDR", "STOCK_INT", "CRYPTO", "OTHER",
-];
-
-const FIXED_INCOME_ASSET_TYPES = new Set<AssetType>([
-  "CDB", "RDB", "LCI", "LCA", "TESOURO", "POUPANCA", "FIXED_INCOME",
-]);
-
-interface CryptoSuggestion {
-  id: string;
-  name: string;
-  symbol: string;
-}
-
-const TYPE_BADGE: Partial<Record<AssetType, string>> = {
-  STOCK: "Ação", FII: "FII", ETF: "ETF", BDR: "BDR",
-  CRYPTO: "Crypto", FIXED_INCOME: "RF", STOCK_INT: "Int'l",
-  CDB: "CDB", RDB: "RDB", LCI: "LCI", LCA: "LCA",
-  TESOURO: "Tesouro", POUPANCA: "Poup.", OTHER: "Outro",
-};
-
-type AssetMode = "existing" | "new" | "ticker";
-
-interface AssetRaw {
-  id: string;
-  name: string;
-  ticker: string | null;
-  type: AssetType;
-  currency: string;
-  currentPrice: number | null;
-}
-
-interface TickerSuggestion {
-  ticker: string;
-  name: string;
-  price: number | null;
-  assetType: AssetType;
-  currency: string;
-}
 
 interface EntryForm {
   id?: string;
@@ -77,21 +36,11 @@ interface EntryDialogProps {
 export function EntryDialog({ open, onClose, entry, assets, onSave, onNewAsset }: EntryDialogProps) {
   const t = useTranslations("Investments");
 
-  // Asset selection state
-  const [assetMode, setAssetMode] = useState<AssetMode>("existing");
+  // Asset selection (resolved via AssetSelector callbacks)
   const [assetId, setAssetId] = useState("");
-  const [assetSearch, setAssetSearch] = useState("");
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [newAssetName, setNewAssetName] = useState("");
-  const [newAssetType, setNewAssetType] = useState<AssetType>("CDB");
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Ticker search state
-  const [tickerSearch, setTickerSearch] = useState("");
-  const [tickerSuggestions, setTickerSuggestions] = useState<TickerSuggestion[]>([]);
-  const [tickerSearching, setTickerSearching] = useState(false);
-  const [showTickerSuggestions, setShowTickerSuggestions] = useState(false);
-  const tickerRef = useRef<HTMLDivElement>(null);
+  const [assetMode, setAssetMode] = useState<AssetMode>("existing");
+  const [newAssetConfig, setNewAssetConfig] = useState<NewAssetConfig>({ name: "", type: "CDB" });
+  const [creatingTicker, setCreatingTicker] = useState(false);
 
   // Entry fields
   const [type, setType] = useState<EntryType>("PURCHASE");
@@ -101,64 +50,22 @@ export function EntryDialog({ open, onClose, entry, assets, onSave, onNewAsset }
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [creatingTicker, setCreatingTicker] = useState(false);
-
-  // Renda fixa fields
-  const [indexer, setIndexer] = useState("CDI");
-  const [rate, setRate] = useState("");
-
-  // Crypto search fields
-  const [cryptoSearch, setCryptoSearch] = useState("");
-  const [cryptoResults, setCryptoResults] = useState<CryptoSuggestion[]>([]);
-  const [cryptoSearching, setCryptoSearching] = useState(false);
-  const [showCryptoDropdown, setShowCryptoDropdown] = useState(false);
-  const [selectedCryptoId, setSelectedCryptoId] = useState<string | null>(null);
-  const cryptoRef = useRef<HTMLDivElement>(null);
 
   const isSplit = type === "SPLIT";
   const total = !isSplit && quantity && price ? (Number(quantity) * Number(price)).toFixed(2) : null;
 
-  // Filtered assets for dropdown
-  const filteredAssets = useMemo(
-    () => assets.filter((a) =>
-      a.name.toLowerCase().includes(assetSearch.toLowerCase()) ||
-      (a.ticker ?? "").toLowerCase().includes(assetSearch.toLowerCase())
-    ),
-    [assets, assetSearch]
-  );
+  // Default values for AssetSelector — recomputed on open
+  const defaultAssetId = open ? (entry?.assetId ?? (assets[0]?.id ?? "")) : undefined;
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowDropdown(false);
-      }
-      if (tickerRef.current && !tickerRef.current.contains(e.target as Node)) {
-        setShowTickerSuggestions(false);
-      }
-      if (cryptoRef.current && !cryptoRef.current.contains(e.target as Node)) {
-        setShowCryptoDropdown(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
-  // Reset on open
+  // Reset entry fields on open (AssetSelector resets via key prop)
   useEffect(() => {
     if (open) {
-      const defaultAssetId = entry?.assetId ?? (assets[0]?.id ?? "");
       const defaultAsset = assets.find((a) => a.id === defaultAssetId);
 
+      setAssetId(defaultAssetId ?? "");
       setAssetMode("existing");
-      setAssetId(defaultAssetId);
-      setAssetSearch(defaultAsset ? (defaultAsset.ticker ? `${defaultAsset.ticker} — ${defaultAsset.name}` : defaultAsset.name) : "");
-      setShowDropdown(false);
-      setNewAssetName("");
-      setNewAssetType("CDB");
-      setTickerSearch("");
-      setTickerSuggestions([]);
-      setShowTickerSuggestions(false);
+      setNewAssetConfig({ name: "", type: "CDB" });
+      setCreatingTicker(false);
 
       setType(entry?.type ?? "PURCHASE");
       setDate(entry?.date ? entry.date.substring(0, 10) : new Date().toISOString().substring(0, 10));
@@ -170,116 +77,12 @@ export function EntryDialog({ open, onClose, entry, assets, onSave, onNewAsset }
       }
       setNotes(entry?.notes ?? "");
       setError("");
-      setIndexer("CDI");
-      setRate("");
-      setCryptoSearch("");
-      setCryptoResults([]);
-      setShowCryptoDropdown(false);
-      setSelectedCryptoId(null);
     }
-  }, [open, entry, assets]);
-
-  // Ticker search with debounce
-  const fetchTickerSuggestions = useCallback(async (q: string) => {
-    if (q.length < 2) { setTickerSuggestions([]); setShowTickerSuggestions(false); return; }
-    setTickerSearching(true);
-    try {
-      const res = await fetch(`/api/investments/ticker-search?q=${encodeURIComponent(q)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setTickerSuggestions(data);
-        setShowTickerSuggestions(true);
-      }
-    } finally {
-      setTickerSearching(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (assetMode !== "ticker") return;
-    const timer = setTimeout(() => fetchTickerSuggestions(tickerSearch), 300);
-    return () => clearTimeout(timer);
-  }, [tickerSearch, assetMode, fetchTickerSuggestions]);
-
-  // Crypto search debounce
-  useEffect(() => {
-    if (assetMode !== "new" || newAssetType !== "CRYPTO") return;
-    if (cryptoSearch.length < 2) { setCryptoResults([]); setShowCryptoDropdown(false); return; }
-    const timer = setTimeout(async () => {
-      setCryptoSearching(true);
-      try {
-        const res = await fetch(`/api/investments/crypto-search?q=${encodeURIComponent(cryptoSearch)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setCryptoResults(data);
-          setShowCryptoDropdown(true);
-        }
-      } finally {
-        setCryptoSearching(false);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [cryptoSearch, assetMode, newAssetType]);
-
-  function selectExistingAsset(a: AssetRaw) {
-    setAssetId(a.id);
-    setAssetSearch(a.ticker ? `${a.ticker} — ${a.name}` : a.name);
-    setShowDropdown(false);
-    setAssetMode("existing");
-    if (a.currentPrice != null) setPrice(String(a.currentPrice));
-  }
-
-  function enterNewAssetMode(name: string) {
-    setNewAssetName(name);
-    setAssetMode("new");
-    setShowDropdown(false);
-    setType("PURCHASE"); // SALE não faz sentido para ativo novo
-  }
-
-  async function selectTickerSuggestion(s: TickerSuggestion) {
-    setShowTickerSuggestions(false);
-    setTickerSearch("");
-
-    // Verificar se ativo já existe na lista
-    const existing = assets.find((a) => a.ticker === s.ticker);
-    if (existing) {
-      selectExistingAsset(existing);
-      setAssetMode("existing");
-      return;
-    }
-
-    // Criar ativo via POST /api/investments/assets
-    setCreatingTicker(true);
-    try {
-      const res = await fetch("/api/investments/assets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: s.name,
-          ticker: s.ticker,
-          type: s.assetType,
-          currency: s.currency,
-          currentPrice: s.price,
-        }),
-      });
-      if (res.ok) {
-        const created = await res.json();
-        onNewAsset?.(created);
-        setAssetId(created.id);
-        setAssetSearch(`${s.ticker} — ${s.name}`);
-        setAssetMode("existing");
-        if (s.price != null) setPrice(String(s.price));
-      } else {
-        setError("Erro ao criar ativo da B3");
-      }
-    } finally {
-      setCreatingTicker(false);
-    }
-  }
+  }, [open, entry, assets, defaultAssetId]);
 
   async function handleSave() {
     if (assetMode === "existing" && !assetId) { setError("Selecione ou crie um ativo"); return; }
-    if (assetMode === "new" && !newAssetName.trim()) { setError("Nome do ativo obrigatório"); return; }
+    if (assetMode === "new" && !newAssetConfig.name.trim()) { setError("Nome do ativo obrigatório"); return; }
     if (!quantity || Number(quantity) <= 0) { setError("Quantidade deve ser maior que zero"); return; }
     if (!isSplit && (!price || Number(price) <= 0)) { setError("Preço deve ser maior que zero"); return; }
 
@@ -293,27 +96,9 @@ export function EntryDialog({ open, onClose, entry, assets, onSave, onNewAsset }
         price: isSplit ? 0 : Number(price),
         notes: notes || null,
       };
-      // Resolve indexer/rate/ticker for new assets
-      const resolvedIndexer = newAssetType === "POUPANCA"
-        ? "POUPANCA"
-        : FIXED_INCOME_ASSET_TYPES.has(newAssetType) ? indexer : undefined;
-      const resolvedRate = newAssetType === "POUPANCA" || !FIXED_INCOME_ASSET_TYPES.has(newAssetType)
-        ? undefined
-        : rate ? parseFloat(rate) : undefined;
-      const resolvedTicker = newAssetType === "CRYPTO" && selectedCryptoId ? selectedCryptoId : undefined;
 
       const body = assetMode === "new"
-        ? {
-            ...base,
-            assetId: null,
-            newAsset: {
-              name: newAssetName.trim(),
-              type: newAssetType,
-              indexer: resolvedIndexer,
-              rate: resolvedRate,
-              ticker: resolvedTicker,
-            },
-          }
+        ? { ...base, assetId: null, newAsset: newAssetConfig }
         : { ...base, assetId };
 
       const url = entry?.id ? `/api/investments/entries/${entry.id}` : "/api/investments/entries";
@@ -330,12 +115,6 @@ export function EntryDialog({ open, onClose, entry, assets, onSave, onNewAsset }
     }
   }
 
-  const selectedAssetLabel = assetMode === "new"
-    ? newAssetName
-    : assetMode === "ticker"
-    ? ""
-    : assetSearch;
-
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="bg-axiom-card border-axiom-border text-white max-w-2xl">
@@ -345,218 +124,22 @@ export function EntryDialog({ open, onClose, entry, assets, onSave, onNewAsset }
         <div className="flex flex-col gap-4">
 
           {/* ── Campo Ativo ── */}
-          <div className="flex flex-col gap-2">
-            <Label className="text-axiom-muted text-sm">{t("table.asset")} *</Label>
-
-            {/* Modo existing: combobox filtrado */}
-            {assetMode !== "ticker" && (
-              <div className="relative" ref={dropdownRef}>
-                <Input
-                  value={assetMode === "new" ? "" : selectedAssetLabel}
-                  onChange={(e) => {
-                    setAssetSearch(e.target.value);
-                    setAssetId("");
-                    setAssetMode("existing");
-                    setShowDropdown(true);
-                  }}
-                  onFocus={() => { if (assetMode !== "new") setShowDropdown(true); }}
-                  placeholder={assetMode === "new" ? "Nome do ativo definido abaixo" : "Buscar ativo ou digitar nome..."}
-                  readOnly={assetMode === "new"}
-                  className="bg-axiom-bg border-axiom-border text-white"
-                />
-                {showDropdown && assetMode !== "new" && (
-                  <div className="absolute z-50 w-full mt-1 bg-axiom-card border border-axiom-border rounded-lg shadow-lg max-h-52 overflow-y-auto">
-                    {filteredAssets.map((a) => (
-                      <button
-                        key={a.id}
-                        type="button"
-                        onClick={() => selectExistingAsset(a)}
-                        className="w-full text-left px-3 py-2 text-sm text-white hover:bg-axiom-hover flex items-center gap-2"
-                      >
-                        <span className="text-axiom-muted text-xs bg-axiom-hover px-1.5 py-0.5 rounded shrink-0">
-                          {TYPE_BADGE[a.type] ?? a.type}
-                        </span>
-                        <span className="truncate">{a.ticker ? `${a.ticker} — ` : ""}{a.name}</span>
-                      </button>
-                    ))}
-                    {assetSearch.trim().length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => enterNewAssetMode(assetSearch.trim())}
-                        className="w-full text-left px-3 py-2 text-sm text-axiom-primary hover:bg-axiom-hover border-t border-axiom-border"
-                      >
-                        + Criar &quot;{assetSearch.trim()}&quot; como novo ativo
-                      </button>
-                    )}
-                    {filteredAssets.length === 0 && assetSearch.trim().length === 0 && (
-                      <p className="px-3 py-2 text-xs text-axiom-muted">Nenhum ativo cadastrado ainda</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Modo new: nome fixo + select de tipo */}
-            {assetMode === "new" && (
-              <div className="flex items-center gap-2 bg-axiom-bg border border-axiom-border rounded-lg px-3 py-2">
-                <span className="text-sm text-white flex-1 truncate">{newAssetName}</span>
-                <Select value={newAssetType} onValueChange={(v) => setNewAssetType(v as AssetType)}>
-                  <SelectTrigger className="w-36 bg-axiom-hover border-axiom-border text-white text-xs h-7">
-                    <SelectValue>{t(`assetTypes.${newAssetType}`)}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="bg-axiom-card border-axiom-border">
-                    {ASSET_TYPES_GROUPED.map((at) => (
-                      <SelectItem key={at} value={at} className="text-white hover:bg-axiom-hover text-xs">
-                        {t(`assetTypes.${at}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <button
-                  type="button"
-                  onClick={() => { setAssetMode("existing"); setAssetSearch(""); }}
-                  className="text-axiom-muted hover:text-white"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            )}
-
-            {/* Modo ticker: pesquisa na B3/Cripto */}
-            {assetMode === "ticker" && (
-              <div className="relative" ref={tickerRef}>
-                <div className="relative">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-axiom-muted" />
-                  <Input
-                    value={tickerSearch}
-                    onChange={(e) => setTickerSearch(e.target.value)}
-                    placeholder="Ex: PETR4, MXRF11, BTC..."
-                    className="bg-axiom-bg border-axiom-border text-white pl-8 pr-8"
-                    autoFocus
-                  />
-                  {tickerSearching || creatingTicker ? (
-                    <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-axiom-muted" />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => { setAssetMode("existing"); setTickerSearch(""); }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-axiom-muted hover:text-white"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-                {showTickerSuggestions && tickerSuggestions.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 bg-axiom-card border border-axiom-border rounded-lg shadow-lg max-h-52 overflow-y-auto">
-                    {tickerSuggestions.map((s) => (
-                      <button
-                        key={s.ticker}
-                        type="button"
-                        onClick={() => selectTickerSuggestion(s)}
-                        className="w-full text-left px-3 py-2 text-sm text-white hover:bg-axiom-hover flex justify-between items-center"
-                      >
-                        <span>{s.ticker} — {s.name}</span>
-                        {s.price != null && (
-                          <span className="text-axiom-muted text-xs">R$ {s.price.toFixed(2)}</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Campos dinâmicos — Renda Fixa */}
-            {assetMode === "new" && FIXED_INCOME_ASSET_TYPES.has(newAssetType) && newAssetType !== "POUPANCA" && (
-              <div className="grid grid-cols-2 gap-3 mt-1">
-                <div className="flex flex-col gap-1">
-                  <Label className="text-axiom-muted text-xs">Indexador</Label>
-                  <Select value={indexer} onValueChange={(v) => v && setIndexer(v)}>
-                    <SelectTrigger className="bg-axiom-bg border-axiom-border text-white text-sm">
-                      <SelectValue>{indexer}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="bg-axiom-card border-axiom-border">
-                      {["CDI", "SELIC", "PREFIXADO"].map((idx) => (
-                        <SelectItem key={idx} value={idx} className="text-white hover:bg-axiom-hover text-sm">
-                          {idx}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-axiom-muted text-xs">Taxa (% a.a.)</Label>
-                  <Input
-                    value={rate}
-                    onChange={(e) => setRate(e.target.value)}
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="100 para 100% CDI"
-                    className="bg-axiom-bg border-axiom-border text-white"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Badge informativo — Poupança */}
-            {assetMode === "new" && newAssetType === "POUPANCA" && (
-              <p className="text-xs text-axiom-muted bg-axiom-bg border border-axiom-border rounded-lg px-3 py-2 mt-1">
-                Taxa automática pela SELIC
-              </p>
-            )}
-
-            {/* Campos dinâmicos — Crypto */}
-            {assetMode === "new" && newAssetType === "CRYPTO" && (
-              <div className="flex flex-col gap-1 mt-1" ref={cryptoRef}>
-                <Label className="text-axiom-muted text-xs">Símbolo da cripto</Label>
-                <div className="relative">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-axiom-muted" />
-                  <Input
-                    value={cryptoSearch}
-                    onChange={(e) => { setCryptoSearch(e.target.value); setSelectedCryptoId(null); }}
-                    placeholder="Ex: BTC, ETH, SOL..."
-                    className="bg-axiom-bg border-axiom-border text-white pl-8 pr-8"
-                  />
-                  {cryptoSearching && (
-                    <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-axiom-muted" />
-                  )}
-                  {selectedCryptoId && !cryptoSearching && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-axiom-income text-xs">✓</span>
-                  )}
-                </div>
-                {showCryptoDropdown && cryptoResults.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 bg-axiom-card border border-axiom-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                    {cryptoResults.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedCryptoId(c.id);
-                          setCryptoSearch(`${c.symbol} — ${c.name}`);
-                          setShowCryptoDropdown(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-white hover:bg-axiom-hover flex justify-between items-center"
-                      >
-                        <span className="font-medium">{c.symbol}</span>
-                        <span className="text-axiom-muted text-xs truncate ml-2">{c.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Toggle pesquisa B3 */}
-            <button
-              type="button"
-              onClick={() => setAssetMode(assetMode === "ticker" ? "existing" : "ticker")}
-              className="text-axiom-primary text-xs hover:underline flex items-center gap-1 w-fit"
-            >
-              <Search size={11} />
-              {assetMode === "ticker" ? t("cancelTickerSearch") : t("tickerSearchToggle")}
-            </button>
-          </div>
+          <AssetSelector
+            key={open ? "open" : "closed"}
+            assets={assets}
+            defaultAssetId={defaultAssetId}
+            onSelect={(id, currentPrice) => {
+              setAssetId(id);
+              if (currentPrice != null) setPrice(String(currentPrice));
+            }}
+            onModeChange={(mode) => {
+              setAssetMode(mode);
+              if (mode === "new") setType("PURCHASE");
+            }}
+            onNewAssetConfigured={setNewAssetConfig}
+            onNewAsset={onNewAsset}
+            onCreatingTickerChange={setCreatingTicker}
+          />
 
           {/* ── Tipo + Data ── */}
           <div className="grid grid-cols-2 gap-3">
