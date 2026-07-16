@@ -58,13 +58,16 @@ export function PatrimonioShell({ initialCurrency, initialLocale }: PatrimonioSh
   const [essentialsData, setEssentialsData] = useState<FireEssentialsResponse | null>(null);
   const [userCategories, setUserCategories] = useState<{ id: string; name: string; color: string }[]>([]);
 
+  const [error, setError] = useState<string | null>(null);
+
   const fetchItems = useCallback(async () => {
     setItemsLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/patrimonio/items");
       if (res.ok) setItemsData(await res.json());
     } catch {
-      // silent
+      setError("Não foi possível carregar os dados.");
     } finally {
       setItemsLoading(false);
     }
@@ -73,6 +76,7 @@ export function PatrimonioShell({ initialCurrency, initialLocale }: PatrimonioSh
   const fetchData = useCallback(async () => {
     setLoading(true);
     setPortfolioLoading(true);
+    setError(null);
     setItemsLoading(true);
 
     const [networthRes, portfolioRes, itemsRes, essentialsRes, categoriesRes] = await Promise.allSettled([
@@ -122,6 +126,9 @@ export function PatrimonioShell({ initialCurrency, initialLocale }: PatrimonioSh
 
   return (
     <div className="flex flex-col gap-6">
+      {error && (
+        <div className="text-axiom-expense text-sm p-4">{error}</div>
+      )}
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-white">Patrimônio</h1>

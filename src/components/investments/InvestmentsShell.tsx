@@ -48,6 +48,7 @@ export function InvestmentsShell({ initialCurrency, initialLocale }: Investments
   const [assets, setAssets] = useState<AssetRaw[]>([]);
   const [benchmarks, setBenchmarks] = useState<BenchmarkData | null>(null);
   const [benchmarksLoading, setBenchmarksLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const triggerPortfolioRefresh = useCallback(() => setPortfolioKey((k) => k + 1), []);
 
@@ -63,6 +64,7 @@ export function InvestmentsShell({ initialCurrency, initialLocale }: Investments
 
   const fetchPortfolio = useCallback(async () => {
     setPortfolioLoading(true);
+    setError(null);
     try {
       const [portfolioRes, assetsRes, benchmarksRes] = await Promise.all([
         fetch("/api/investments/portfolio"),
@@ -78,7 +80,7 @@ export function InvestmentsShell({ initialCurrency, initialLocale }: Investments
       setAssets(assetsList);
       setBenchmarks(benchmarksData);
     } catch {
-      // silent fail
+      setError("Não foi possível carregar os dados.");
     } finally {
       setPortfolioLoading(false);
       setBenchmarksLoading(false);
@@ -91,6 +93,9 @@ export function InvestmentsShell({ initialCurrency, initialLocale }: Investments
 
   return (
     <div className="flex flex-col gap-6 p-6">
+      {error && (
+        <div className="text-axiom-expense text-sm p-4">{error}</div>
+      )}
       <div className="flex flex-col gap-3">
         <h1 className="text-xl font-semibold text-white">{t("title")}</h1>
         <div className="flex bg-axiom-hover rounded-lg p-1 gap-1 w-fit">

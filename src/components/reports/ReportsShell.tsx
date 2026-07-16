@@ -44,9 +44,11 @@ export function ReportsShell({ initialCurrency, initialLocale }: ReportsShellPro
 
   const [overviewState, setOverviewState] = useState<TabData<OverviewData>>({ data: null, loading: false });
   const [cashflowState, setCashflowState] = useState<TabData<CashflowData>>({ data: null, loading: false });
+  const [error, setError] = useState<string | null>(null);
 
   const fetchOverview = useCallback(async (start: string, end: string) => {
     setOverviewState((s) => ({ ...s, loading: true }));
+    setError(null);
     try {
       const res = await fetch(`/api/reports/overview?start=${start}&end=${end}`);
       if (res.ok) {
@@ -57,11 +59,13 @@ export function ReportsShell({ initialCurrency, initialLocale }: ReportsShellPro
       }
     } catch {
       setOverviewState({ data: null, loading: false });
+      setError("Não foi possível carregar os dados.");
     }
   }, []);
 
   const fetchCashflow = useCallback(async (start: string, end: string) => {
     setCashflowState((s) => ({ ...s, loading: true }));
+    setError(null);
     try {
       const res = await fetch(`/api/reports/cashflow?start=${start}&end=${end}`);
       if (res.ok) {
@@ -72,6 +76,7 @@ export function ReportsShell({ initialCurrency, initialLocale }: ReportsShellPro
       }
     } catch {
       setCashflowState({ data: null, loading: false });
+      setError("Não foi possível carregar os dados.");
     }
   }, []);
 
@@ -99,6 +104,9 @@ export function ReportsShell({ initialCurrency, initialLocale }: ReportsShellPro
     <div className="space-y-6">
       {/* Filtro de período */}
       <PeriodFilter onChange={handlePeriodChange} />
+      {error && (
+        <div className="text-axiom-expense text-sm p-4">{error}</div>
+      )}
 
       {/* Tabs */}
       <div className="flex bg-axiom-hover rounded-lg p-1 gap-1 w-fit">

@@ -51,6 +51,7 @@ export function FireDashboard({ currency, locale }: FireDashboardProps) {
   const [fireData, setFireData] = useState<FireResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [fireLoading, setFireLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Inputs editáveis
   const [extraSavings, setExtraSavings] = useState(0);
@@ -178,6 +179,7 @@ export function FireDashboard({ currency, locale }: FireDashboardProps) {
       if (fireDebounce.current) clearTimeout(fireDebounce.current);
       fireDebounce.current = setTimeout(async () => {
         setFireLoading(true);
+        setError(null);
         try {
           const params = new URLSearchParams({
             patrimony: String(patrimony),
@@ -201,7 +203,7 @@ export function FireDashboard({ currency, locale }: FireDashboardProps) {
           const res = await fetch(`/api/reports/fire?${params}`);
           if (res.ok) setFireData(await res.json());
         } catch {
-          // silent
+          setError("Não foi possível carregar os dados.");
         } finally {
           setFireLoading(false);
         }
@@ -329,6 +331,9 @@ export function FireDashboard({ currency, locale }: FireDashboardProps) {
 
   return (
     <div className="flex flex-col gap-4">
+      {error && (
+        <div className="text-axiom-expense text-sm p-4">{error}</div>
+      )}
       {/* Metas pessoais */}
       {fireSettings && (
         <FireGoalsCard
