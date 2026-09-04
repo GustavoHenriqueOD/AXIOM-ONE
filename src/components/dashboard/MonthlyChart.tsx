@@ -106,16 +106,25 @@ export function MonthlyChart({ data, currency = "BRL" }: MonthlyChartProps) {
     },
   };
 
+  const scrollable = data.length > 6;
+  // 90px per month gives each bar-group enough room
+  const chartMinWidth = data.length * 90;
+
   return (
     <div className="bg-axiom-card border border-axiom-border rounded-xl p-5 h-full flex flex-col">
       <h3 className="text-white font-semibold mb-4">{t("title")}</h3>
-      <div className="flex-1 min-h-0">
-        {mounted ? (
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          <Bar data={chartData} options={options as any} />
-        ) : (
-          <div className="w-full h-full rounded-lg bg-axiom-hover animate-pulse" />
-        )}
+      <div className={`flex-1 min-h-0 ${scrollable ? "overflow-x-auto" : ""}`}>
+        <div
+          className="h-full"
+          style={scrollable ? { minWidth: `${chartMinWidth}px` } : {}}
+        >
+          {mounted ? (
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            <Bar data={chartData} options={options as any} />
+          ) : (
+            <div className="w-full h-full rounded-lg bg-axiom-hover animate-pulse" />
+          )}
+        </div>
       </div>
     </div>
   );

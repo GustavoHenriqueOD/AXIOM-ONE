@@ -5,6 +5,7 @@ export interface ParsedRow {
   cleanDescription: string;
   amount: number; // always positive
   type: "INCOME" | "EXPENSE";
+  suggestedCategoryId?: string | null;
 }
 
 export interface ReviewedRow extends ParsedRow {

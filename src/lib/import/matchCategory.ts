@@ -1,5 +1,61 @@
 type CategoryInput = { id: string; name: string };
 
+type LearnedTransaction = { description: string; categoryId: string };
+
+const STOP_TOKENS = new Set([
+  "de", "do", "da", "dos", "das", "em", "no", "na", "nos", "nas",
+  "com", "por", "para", "via", "ref", "serv",
+  "pix", "ted", "doc", "pag",
+  "transferencia", "transferência", "recebido", "recebida", "enviado", "enviada",
+  "pagamento", "compra", "saque", "deposito", "debito", "credito", "boleto",
+]);
+
+export function buildLearnedMatcher(
+  transactions: LearnedTransaction[],
+  categories: CategoryInput[]
+): (description: string) => string | null {
+  const catIds = new Set(categories.map((c) => c.id));
+  // token → Map<categoryId, frequency>
+  const tokenMap = new Map<string, Map<string, number>>();
+
+  for (const tx of transactions) {
+    if (!catIds.has(tx.categoryId)) continue;
+    const tokens = normalize(tx.description)
+      .split(/[\s\-_.,/]+/)
+      .filter((t) => t.length >= 4 && !STOP_TOKENS.has(t));
+
+    for (const token of tokens) {
+      if (!tokenMap.has(token)) tokenMap.set(token, new Map());
+      const catMap = tokenMap.get(token)!;
+      catMap.set(tx.categoryId, (catMap.get(tx.categoryId) ?? 0) + 1);
+    }
+  }
+
+  return (description: string): string | null => {
+    const tokens = normalize(description)
+      .split(/[\s\-_.,/]+/)
+      .filter((t) => t.length >= 4 && !STOP_TOKENS.has(t));
+
+    const scores = new Map<string, number>();
+    for (const token of tokens) {
+      const catMap = tokenMap.get(token);
+      if (!catMap) continue;
+      for (const [catId, count] of catMap) {
+        scores.set(catId, (scores.get(catId) ?? 0) + count);
+      }
+    }
+
+    if (!scores.size) return null;
+
+    let best: string | null = null;
+    let bestScore = 0;
+    for (const [catId, score] of scores) {
+      if (score > bestScore) { bestScore = score; best = catId; }
+    }
+    return best;
+  };
+}
+
 const KEYWORD_GROUPS: Record<string, string[]> = {
   "alimentação/mercado": [
     "supermercado", "mercado", "atacadao", "extra", "carrefour", "walmart", "pao de acucar", "assai",

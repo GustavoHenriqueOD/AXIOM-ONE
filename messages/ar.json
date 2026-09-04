@@ -16,6 +16,9 @@
       "/transactions": "المعاملات",
       "/reports": "التقارير المالية",
       "/import": "استيراد ملف OFX",
+      "/investments": "الاستثمارات",
+      "/patrimonio": "الثروة الصافية",
+      "/journal": "المذكرة المالية",
       "/independencia": "الاستقلال المالي",
       "/settings": "الإعدادات"
     },

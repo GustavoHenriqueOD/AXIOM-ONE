@@ -83,9 +83,6 @@ async function getDashboardData(
   const prevStart = new Date(start.getTime() - duration - 1);
   const prevEnd = new Date(start.getTime() - 1);
 
-  // 6 meses terminando no mês de `end` para o MonthlyChart
-  const endMonth = new Date(end.getFullYear(), end.getMonth() + 1, 0);
-
   const [allTransactions, periodTx, prevTx, recentTx, categoryTx, defaultCurrency, dividendEntries, portfolioAssets] =
     await Promise.all([
       // All-time para saldo total
@@ -155,13 +152,21 @@ async function getDashboardData(
   const expensesChange = prevExpenses > 0 ? ((expenses - prevExpenses) / prevExpenses) * 100 : 0;
   const netDiffChange = prevNet !== 0 ? ((netDifference - prevNet) / Math.abs(prevNet)) * 100 : 0;
 
-  // MonthlyChart: 6 meses terminando em `endMonth`
-  const monthlyData = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(endMonth.getFullYear(), endMonth.getMonth() - (5 - i), 1);
+  // MonthlyChart: todos os meses do período selecionado
+  const monthCount =
+    (end.getFullYear() - start.getFullYear()) * 12 +
+    end.getMonth() - start.getMonth() + 1;
+  const spanYears = end.getFullYear() !== start.getFullYear();
+
+  const monthlyData = Array.from({ length: monthCount }, (_, i) => {
+    const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
     const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
     const monthTx = allTransactions.filter((t) => t.date >= d && t.date <= mEnd);
     return {
-      month: d.toLocaleString(locale, { month: "short" }),
+      month: d.toLocaleString(locale, {
+        month: "short",
+        ...(spanYears ? { year: "2-digit" } : {}),
+      }),
       income: monthTx
         .filter((t) => t.type === "INCOME")
         .reduce((acc, t) => acc + toNumber(t.amount), 0),

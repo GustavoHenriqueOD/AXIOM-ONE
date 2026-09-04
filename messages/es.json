@@ -16,6 +16,9 @@
       "/transactions": "Transacciones",
       "/reports": "Informes Financieros",
       "/import": "Importar Archivo OFX",
+      "/investments": "Inversiones",
+      "/patrimonio": "Patrimonio",
+      "/journal": "Diario Financiero",
       "/independencia": "Independencia Financiera",
       "/settings": "Configuración"
     },

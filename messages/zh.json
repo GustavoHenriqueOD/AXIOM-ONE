@@ -16,6 +16,9 @@
       "/transactions": "交易记录",
       "/reports": "财务报告",
       "/import": "导入 OFX 文件",
+      "/investments": "投资",
+      "/patrimonio": "净资产",
+      "/journal": "财务日记",
       "/independencia": "财务独立",
       "/settings": "设置"
     },

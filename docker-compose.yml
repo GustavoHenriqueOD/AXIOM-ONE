@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: axiom-one-db
+    environment:
+      POSTGRES_DB: axiom_one
+      POSTGRES_USER: axiom
+      POSTGRES_PASSWORD: axiom123
+    ports:
+      - "5433:5432"
+    volumes:
+      - axiom_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  axiom_pgdata:

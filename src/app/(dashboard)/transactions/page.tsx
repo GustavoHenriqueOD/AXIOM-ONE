@@ -11,7 +11,6 @@ export default async function TransactionsPage() {
     prisma.transaction.findMany({
       where: { userId: session.user.id },
       orderBy: { date: "desc" },
-      take: 200,
       include: { category: true },
     }),
     prisma.category.findMany({

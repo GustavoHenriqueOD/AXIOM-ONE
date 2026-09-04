@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { parseFile } from "@/lib/import/parseFile";
+import { matchCategory, buildLearnedMatcher } from "@/lib/import/matchCategory";
 
 const ALLOWED_EXTENSIONS = ["ofx", "csv", "xlsx", "xls"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
@@ -38,7 +40,44 @@ export async function POST(req: Request) {
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     const rows = await parseFile(buffer, file.name);
-    return NextResponse.json(rows);
+
+    // Load user history and categories for smart matching
+    const [existingTx, categories] = await Promise.all([
+      prisma.transaction.findMany({
+        where: { userId: session.user.id },
+        select: { description: true, categoryId: true },
+        orderBy: { date: "desc" },
+        take: 2000,
+      }),
+      prisma.category.findMany({ where: { userId: session.user.id } }),
+    ]);
+
+    // Ensure Limbo category exists
+    let limboCategory = categories.find((c) => c.name === "Limbo");
+    if (!limboCategory) {
+      limboCategory = await prisma.category.create({
+        data: { name: "Limbo", color: "#6B7280", icon: "inbox", userId: session.user.id },
+      });
+      categories.push(limboCategory);
+    }
+
+    const catInputs = categories.map((c) => ({ id: c.id, name: c.name }));
+
+    // Learn from non-Limbo transactions only
+    const learnedMatcher = buildLearnedMatcher(
+      existingTx.filter((tx) => tx.categoryId !== limboCategory!.id),
+      catInputs
+    );
+
+    const enriched = rows.map((row) => ({
+      ...row,
+      suggestedCategoryId:
+        matchCategory(row.cleanDescription, catInputs) ??
+        learnedMatcher(row.cleanDescription) ??
+        limboCategory!.id,
+    }));
+
+    return NextResponse.json(enriched);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro ao processar arquivo";
     return NextResponse.json({ error: message }, { status: 422 });

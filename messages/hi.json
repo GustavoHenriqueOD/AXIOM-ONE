@@ -16,6 +16,9 @@
       "/transactions": "लेनदेन",
       "/reports": "वित्तीय रिपोर्ट",
       "/import": "OFX फ़ाइल आयात करें",
+      "/investments": "निवेश",
+      "/patrimonio": "संपत्ति",
+      "/journal": "वित्तीय डायरी",
       "/independencia": "वित्तीय स्वतंत्रता",
       "/settings": "सेटिंग्स"
     },

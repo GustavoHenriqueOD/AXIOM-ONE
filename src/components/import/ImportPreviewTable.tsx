@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, Inbox, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ImportInlineCategorySelect } from "./ImportInlineCategorySelect";
-import { matchCategory } from "@/lib/import/matchCategory";
 import { formatCurrency } from "@/lib/utils";
 import type { ParsedRow, ReviewedRow } from "@/lib/import/types";
 import type { Category } from "@/generated/prisma/client";
@@ -41,13 +40,18 @@ export function ImportPreviewTable({
     rows.map((r) => ({
       ...r,
       description: r.cleanDescription,
-      categoryId: matchCategory(r.cleanDescription, initialCategories),
+      categoryId: r.suggestedCategoryId ?? null,
       skip: false,
     }))
   );
 
+  const limboCategoryId = categories.find((c) => c.name === "Limbo")?.id;
+
   const active = reviewed.filter((r) => !r.skip);
   const unmatched = active.filter((r) => !r.categoryId).length;
+  const limboCount = limboCategoryId
+    ? active.filter((r) => r.categoryId === limboCategoryId).length
+    : 0;
   const total = active.reduce((sum, r) => sum + r.amount, 0);
   const canConfirm = active.length > 0 && unmatched === 0 && !isImporting;
 
@@ -70,6 +74,19 @@ export function ImportPreviewTable({
         <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-sm">
           <AlertTriangle size={16} className="shrink-0" />
           <span>{t("noCategoryWarning", { count: unmatched })}</span>
+        </div>
+      )}
+      {limboCount > 0 && unmatched === 0 && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-axiom-hover border border-axiom-border text-axiom-muted text-sm">
+          <Inbox size={16} className="shrink-0 text-axiom-primary" />
+          <span>
+            <span className="text-white font-medium">{limboCount}</span>{" "}
+            {limboCount === 1
+              ? "transação foi para o Limbo"
+              : "transações foram para o Limbo"}{" "}
+            — você pode ajustar as categorias agora ou depois em{" "}
+            <span className="text-white">Transações</span>.
+          </span>
         </div>
       )}
 

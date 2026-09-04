@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { TransactionFilters } from "./TransactionFilters";
 import { TransactionTable, type Transaction } from "./TransactionTable";
 import { TransactionDialog } from "./TransactionDialog";
 import { CategoriesManager } from "@/components/settings/CategoriesManager";
 import type { Category } from "@/generated/prisma/client";
+
+const PAGE_SIZE = 50;
 
 type ActiveTab = "transactions" | "categories";
 
@@ -38,6 +40,7 @@ export function TransactionList({ transactions: initial, categories: initialCate
   const [filters, setFilters] = useState<Filters>({ type: "ALL", categoryId: null, month: null });
   const [dialog, setDialog] = useState<DialogState>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const filtered = transactions.filter((tx) => {
     if (filters.type !== "ALL" && tx.type !== filters.type) return false;
@@ -48,6 +51,15 @@ export function TransactionList({ transactions: initial, categories: initialCate
     }
     return true;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  function handleFilterChange(next: Filters) {
+    setFilters(next);
+    setPage(1);
+  }
 
   async function handleDelete(id: string) {
     setDeletingId(id);
@@ -96,7 +108,7 @@ export function TransactionList({ transactions: initial, categories: initialCate
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <TransactionFilters
               filters={filters}
-              onFilterChange={setFilters}
+              onFilterChange={handleFilterChange}
               categories={categories}
             />
             <Button
@@ -109,11 +121,38 @@ export function TransactionList({ transactions: initial, categories: initialCate
           </div>
 
           <TransactionTable
-            transactions={filtered}
+            transactions={paginated}
             onEdit={(tx) => setDialog({ mode: "edit", transaction: tx })}
             onDelete={handleDelete}
             deletingId={deletingId}
           />
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between text-sm text-axiom-muted pt-1">
+              <span>
+                {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} de {filtered.length} transações
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage === 1}
+                  className="p-1.5 rounded hover:bg-axiom-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="px-2 text-white">
+                  {safePage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage === totalPages}
+                  className="p-1.5 rounded hover:bg-axiom-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
 
           {dialog && (
             <TransactionDialog
