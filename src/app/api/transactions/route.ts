@@ -3,9 +3,57 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+// Helper: alerta por orçamento de categoria (dedup por mês)
+async function checkCategoryBudgetAlert(
+  userId: string,
+  categoryId: string,
+  categoryName: string
+) {
+  const budget = await prisma.budget.findUnique({
+    where: { userId_categoryId: { userId, categoryId } },
+  });
+  if (!budget) return;
+
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const agg = await prisma.transaction.aggregate({
+    where: { userId, categoryId, type: "EXPENSE", date: { gte: startOfMonth } },
+    _sum: { amount: true },
+  });
+
+  const spent = toNumber(agg._sum.amount ?? 0);
+  const limit = toNumber(budget.monthlyLimit);
+  const pct = limit > 0 ? (spent / limit) * 100 : 0;
+
+  if (pct < 80) return;
+
+  // Dedup: 1 alerta por categoria por mês (busca por categoryId — robusto a renomes)
+  const existing = await prisma.notification.findFirst({
+    where: {
+      userId,
+      type: "BUDGET_ALERT",
+      categoryId,
+      createdAt: { gte: startOfMonth },
+    },
+  });
+  if (existing) return;
+
+  const label = pct >= 100 ? "ultrapassou" : `atingiu ${Math.round(pct)}% de`;
+  await prisma.notification.create({
+    data: {
+      userId,
+      type: "BUDGET_ALERT",
+      title: `Orçamento: ${categoryName}`,
+      message: `Você ${label} o limite mensal de "${categoryName}".`,
+      categoryId,
+    },
+  });
+}
+
 async function generateTransactionNotifications(
   userId: string,
-  tx: { description: string; amount: number; type: string; categoryName: string }
+  tx: { description: string; amount: number; type: string; categoryName: string; categoryId: string }
 ) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -63,6 +111,11 @@ async function generateTransactionNotifications(
           },
         });
       }
+    }
+
+    // Alerta específico por orçamento de categoria
+    if (user.notifBudgetAlerts && tx.categoryId) {
+      await checkCategoryBudgetAlert(userId, tx.categoryId, tx.categoryName);
     }
   }
 }
@@ -140,6 +193,7 @@ export async function POST(req: NextRequest) {
     amount,
     type,
     categoryName: transaction.category.name,
+    categoryId: transaction.categoryId,
   }).catch(() => {});
 
   const serialized = {
