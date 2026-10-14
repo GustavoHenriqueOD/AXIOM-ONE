@@ -38,17 +38,19 @@ model User {
   journalEntries      JournalEntry[]
   wealthItems         WealthItem[]
   financialGoals      FinancialGoal[]
+  budgets             Budget[]
 }
 
 model Notification {
-  id        String           @id @default(cuid())
-  userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      NotificationType
-  title     String
-  message   String
-  read      Boolean          @default(false)
-  createdAt DateTime         @default(now())
+  id         String           @id @default(cuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       NotificationType
+  title      String
+  message    String
+  read       Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+  categoryId String?
 }
 
 enum NotificationType {
@@ -81,6 +83,7 @@ model Category {
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
   wealthItems  WealthItem[]  // passivos que linkam nesta categoria
+  budgets      Budget[]
   createdAt    DateTime      @default(now())
 }
 
@@ -268,4 +271,18 @@ model FinancialGoal {
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
   user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Budget {
+  id           String   @id @default(cuid())
+  userId       String
+  categoryId   String
+  monthlyLimit Decimal  @db.Decimal(10, 2)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryId])
+  @@index([userId])
 }
