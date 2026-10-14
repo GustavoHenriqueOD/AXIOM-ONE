@@ -8,6 +8,7 @@ import { KPICard } from "@/components/dashboard/KPICard";
 import { MonthlyChart } from "@/components/dashboard/MonthlyChart";
 import { SpendingDonut } from "@/components/dashboard/SpendingDonut";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
+import { BudgetOverview } from "@/components/dashboard/BudgetOverview";
 import { DashboardInsights, InsightCard } from "@/components/dashboard/DashboardInsights";
 import { PortfolioRotatingCard } from "@/components/dashboard/PortfolioRotatingCard";
 import { PeriodFilter } from "@/components/shared/PeriodFilter";
@@ -500,6 +501,9 @@ export default async function DashboardPage({
 
       {/* Recent Transactions */}
       <RecentTransactions transactions={data.recentTransactions} currency={data.currency} />
+
+      {/* Budget Overview */}
+      <BudgetOverview />
     </div>
   );
 }
