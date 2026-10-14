@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { TransactionFilters } from "./TransactionFilters";
 import { TransactionTable, type Transaction } from "./TransactionTable";
 import { TransactionDialog } from "./TransactionDialog";
@@ -82,6 +82,29 @@ export function TransactionList({ transactions: initial, categories: initialCate
     setDialog(null);
   }
 
+  function handleExportCSV() {
+    // Determina intervalo baseado no filtro de mês ativo
+    let start: string | undefined;
+    let end: string | undefined;
+
+    if (filters.month) {
+      const [y, m] = filters.month.split("-").map(Number);
+      const last = new Date(y, m, 0).getDate();
+      start = `${filters.month}-01`;
+      end = `${filters.month}-${String(last).padStart(2, "0")}`;
+    }
+
+    const params = new URLSearchParams();
+    if (start) params.set("start", start);
+    if (end) params.set("end", end);
+
+    const url = `/api/transactions/export${params.toString() ? "?" + params.toString() : ""}`;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "transacoes-axiom.csv";
+    a.click();
+  }
+
   const TABS: { key: ActiveTab; label: string }[] = [
     { key: "transactions", label: "Transações" },
     { key: "categories", label: "Categorias" },
@@ -111,6 +134,14 @@ export function TransactionList({ transactions: initial, categories: initialCate
               onFilterChange={handleFilterChange}
               categories={categories}
             />
+            <Button
+              onClick={handleExportCSV}
+              variant="outline"
+              className="border-axiom-border text-axiom-muted hover:text-white hover:bg-axiom-hover gap-1.5 h-9 text-sm shrink-0"
+            >
+              <Download size={15} />
+              Exportar CSV
+            </Button>
             <Button
               onClick={() => setDialog({ mode: "create" })}
               className="bg-axiom-primary hover:bg-axiom-primary/90 text-white gap-1.5 h-9 text-sm shrink-0"
