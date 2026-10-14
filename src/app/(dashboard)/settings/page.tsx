@@ -12,7 +12,7 @@ export default async function Page() {
   const currentTheme = (cookieStore.get("AXIOM_THEME")?.value ?? "dark") as "dark" | "light";
   const currentLocale = cookieStore.get("NEXT_LOCALE")?.value ?? "en";
 
-  const [user, currencies] = await Promise.all([
+  const [user, currencies, categories] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -29,6 +29,10 @@ export default async function Page() {
       where: { userId: session.user.id },
       orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
     }),
+    prisma.category.findMany({
+      where: { userId: session.user.id },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   if (!user) redirect("/login");
@@ -44,6 +48,7 @@ export default async function Page() {
         notifBudgetAlerts: user.notifBudgetAlerts,
         notifMonthlyReport: user.notifMonthlyReport,
       }}
+      categories={categories}
     />
   );
 }

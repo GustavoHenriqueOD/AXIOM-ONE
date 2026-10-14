@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { CurrencyManager } from "./CurrencyManager";
+import { BudgetManager } from "./BudgetManager";
 import { toast } from "@/lib/toast";
 import {
   Select,
@@ -28,8 +29,9 @@ import {
   Shield,
   ChevronRight,
   Camera,
+  Target,
 } from "lucide-react";
-import type { UserCurrency } from "@/generated/prisma/client";
+import type { UserCurrency, Category } from "@/generated/prisma/client";
 
 const LANGUAGE_OPTIONS = [
   { code: "en", label: "English", flag: "🇺🇸" },
@@ -53,6 +55,7 @@ interface SettingsPageProps {
   currentTheme: "dark" | "light";
   currentLocale: string;
   notifPrefs: NotifPrefs;
+  categories: Category[];
 }
 
 export function SettingsPage({
@@ -61,6 +64,7 @@ export function SettingsPage({
   currentTheme,
   currentLocale,
   notifPrefs,
+  categories,
 }: SettingsPageProps) {
   const router = useRouter();
   const t = useTranslations("Settings");
@@ -405,6 +409,18 @@ export function SettingsPage({
             />
           </div>
         </div>
+      </section>
+
+      {/* ── Orçamentos ── */}
+      <section className="bg-axiom-card border border-axiom-border rounded-xl p-6">
+        <div className="flex items-center gap-2 mb-6">
+          <Target size={16} className="text-axiom-muted" />
+          <h2 className="text-white font-semibold text-base">Orçamentos Mensais</h2>
+        </div>
+        <p className="text-axiom-muted text-xs mb-4">
+          Defina um limite de gastos mensal por categoria. Você receberá um alerta ao atingir 80% do limite.
+        </p>
+        <BudgetManager categories={categories} />
       </section>
 
       {/* ── Data & Backup ── */}
